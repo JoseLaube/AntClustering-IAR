@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 
 typedef struct formiga{
     int posiX;
@@ -50,65 +51,106 @@ void inic_mortas(Morta mortas[], int quantMortas, int tamForm, int formigueiro[t
 
 void movimento(Formiga formigas[], int i, int tamForm){
     /*Os movimentos
-    a formiga pode se mover para 8 direções 
-    0 = diagonal superior esquerda - x - 1; y -1
-    1 = cima - x - 1; y
-    2 = diagonal superior direita - x - 1; y + 1
-    3 = esquerda - x; y - 1
-    4 = direita - x; y + 1
-    5 = diagonal inferior esquerda - x + 1; y - 1
-    6 = baixo - x + 1; y
-    7 = diagonal inferior direita - x + 1; y + 1
-    
+    a formiga pode se mover para 4 direções 
+    0 = cima - x - 1; y
+    1 = esquerda - x; y - 1
+    2 = direita - x; y + 1
+    3 = baixo - x + 1; y
     */
+
+    // VERSÃO ANTIGA DA DIREÇÃO:
+    
+    /*
     int direcao = rand() % 8;
-
-    int novoX = formigas[i].posiX;
-    int novoY = formigas[i].posiY;
-
     switch(direcao){
-        case 0: novoX--; novoY--; break;
+        case 0: novoX--; novoY--; break; // diagonal superior esquerda - x - 1; y -1
         case 1: novoX--; break;
-        case 2: novoX--; novoY++; break;
+        case 2: novoX--; novoY++; break; // diagonal superior direita - x - 1; y + 1
         case 3: novoY--; break;
         case 4: novoY++; break;
-        case 5: novoX++; novoY--; break;
+        case 5: novoX++; novoY--; break; // diagonal inferior esquerda - x + 1; y - 1
         case 6: novoX++; break;
-        case 7: novoX++; novoY++; break;
+        case 7: novoX++; novoY++; break; // diagonal inferior direita - x + 1; y + 1
     }
 
     if(novoX >= 0 && novoX < tamForm && novoY >= 0 && novoY < tamForm){
         formigas[i].posiX = novoX;
         formigas[i].posiY = novoY;
     }
+    */
+
+
+    // VERSÃO NOVA DA DIREÇÃO:
+    int novoX = formigas[i].posiX;
+    int novoY = formigas[i].posiY;
+
+    int direcao = rand() % 4;
+
+    switch(direcao){
+        case 0: novoX--; break;
+        case 1: novoY--; break;
+        case 2: novoY++; break;
+        case 3: novoX++; break;
+    }
+
+    if(novoX < 0){
+        novoX = tamForm - 1;
+    }
+
+    if (novoX >= tamForm) {
+        novoX = 0;
+    }
+
+     if(novoY < 0){
+        novoY = tamForm - 1;
+    }
+
+    if (novoY >= tamForm) {
+        novoY = 0;
+    }
+
+    formigas[i].posiX = novoX;
+    formigas[i].posiY = novoY;
 
 }
 
-int visao(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][tamForm]){
+int visao(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][tamForm], int raio){
     int cont = 0;
     int x = formigas[i].posiX;
     int y = formigas[i].posiY;
 
-    for(int dx = -2; dx <= 2; dx++){
-        for(int dy = -2; dy <= 2; dy++){
+    for(int dx = -raio; dx <= raio; dx++){
+        for(int dy = -raio; dy <= raio; dy++){
 
             if(dx == 0 && dy == 0) continue;
 
+            // VERSÃO ANTIGA DA MOVIMENTAÇÃO:
+
+            // if(nx >= 0 && nx < tamForm && ny >= 0 && ny < tamForm){
+            //     cont += formigueiro[nx][ny];
+            // }
+
+
+            // NOVA VERSÃO DA VISÃO:
             int nx = x + dx;
             int ny = y + dy;
 
-            if(nx >= 0 && nx < tamForm && ny >= 0 && ny < tamForm){
-                cont += formigueiro[nx][ny];
-            }
+            if (nx < 0) nx = tamForm - 1;
+            if (nx >= tamForm) nx = 0;
+
+            if (ny < 0) ny = tamForm - 1;
+            if (ny >= tamForm) ny = 0;
+
+            cont += formigueiro[nx][ny];
+
         }
     }
     float result = 0;
     if(formigas[i].status == 1){
-        result = cont/8.0;
-
+        result = cont/(pow((2 * raio + 1), 2) - 1);
     }
     else if(formigas[i].status == 0){
-        result = 1.0 - cont/8.0;
+        result = 1.0 - cont/(pow((2 * raio + 1), 2) - 1);
     }
 
     float r = (float)rand() / RAND_MAX;
@@ -148,7 +190,7 @@ int encontrarMorta(int x, int y, Morta colonia[], int quantMortas){
 }
 
 
-void dandoVida(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][tamForm], Morta colonia[], int quantMortas){
+void dandoVida(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][tamForm], Morta colonia[], int quantMortas, int raio){
     
     int decisao = 0;
     int j = 0;
@@ -157,7 +199,7 @@ void dandoVida(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][
             movimento(formigas, i, tamForm);
         }
         else{
-            decisao = visao(formigas, i, tamForm, formigueiro);
+            decisao = visao(formigas, i, tamForm, formigueiro, raio);
             if(decisao == 1){
                 if(formigas[i].idMorta != -1){
                     soltar(formigas, colonia, i, tamForm, formigas[i].idMorta, formigueiro);
@@ -173,7 +215,7 @@ void dandoVida(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][
             movimento(formigas, i, tamForm);
         }
         else{
-            decisao = visao(formigas, i, tamForm, formigueiro);
+            decisao = visao(formigas, i, tamForm, formigueiro, raio);
             if(decisao == 1){
                 j = encontrarMorta(formigas[i].posiX, formigas[i].posiY, colonia, quantMortas);
                 if(j != -1){
@@ -227,13 +269,15 @@ void salvarMapaTxt(int tam, int formigueiro[tam][tam], Formiga formigas[], int q
 
 int main(){
     int tamForm = 32;
-    int quantForm = 100;
-    int quantMortas = 101;
-    int visao = 1;
+    int quantForm = 20;
+    int quantMortas = 100;
+    int raio = 1;
+    int num_iteracoes = 1000000;
+    int frequenciaSnapshot = 500; // iteracoes para atualizar o txt 
+
     int formigueiro[tamForm][tamForm];
     int vivas[tamForm][tamForm];
     srand(time(NULL));
-
     Formiga formigas[quantForm];
     Morta corpos[quantMortas];
 
@@ -262,17 +306,19 @@ int main(){
 
     printf("\n\n\n");
 
-    int frequenciaSnapshot = 500; // num de iteracoes de uma formiga para atualizar o txt 
-
-    for(int i = 0; i < 1000000; i++){
+    
+    for(int i = 0; i < num_iteracoes; i++){
         for(int j = 0; j < quantForm; j++){
-            dandoVida(formigas, j, tamForm, formigueiro, corpos, quantMortas);
+            dandoVida(formigas, j, tamForm, formigueiro, corpos, quantMortas, raio);
         }
 
         if(i % frequenciaSnapshot == 0){
             salvarMapaTxt(tamForm, formigueiro, formigas, quantForm, i);
         }
     }
+
+    // print final do formigueiro
+    salvarMapaTxt(tamForm, formigueiro, formigas, quantForm, num_iteracoes);
 
     for(int i = 0; i < tamForm; i++){
         for(int j = 0; j < tamForm; j++){
