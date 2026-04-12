@@ -13,7 +13,10 @@ typedef struct formiga{
 typedef struct morta{
     int posiX;
     int posiY;
-    int status; //0 no chão, 1 sendo carregada;
+    int status; 
+    int grupo;
+    float x_grupo;
+    float y_grupo;
 } Morta;
 
 void inic_formigas(Formiga formigas[], int quantForm, int tamForm, int vivas[tamForm][tamForm]){
@@ -30,6 +33,46 @@ void inic_formigas(Formiga formigas[], int quantForm, int tamForm, int vivas[tam
 
         //vivas[x][y]++;
     }
+}
+
+void inic_mortas_txt(Morta mortas[], int quantMortas, int tamForm, int formigueiro[tamForm][tamForm]) {
+    FILE *f = fopen("dados.txt", "r");
+    if (f == NULL) {
+        printf("Erro ao abrir arquivo!\n");
+        exit(1);
+    }
+
+    float x_real, y_real;
+    int grupo;
+
+    for (int i = 0; i < quantMortas; i++) {
+
+        // lê os dados do arquivo
+        if (fscanf(f, "%f %f %d", &x_real, &y_real, &grupo) != 3) {
+            printf("Erro ao ler linha %d\n", i);
+            break;
+        }
+
+        // 🔥 salva os dados "semânticos"
+        mortas[i].x_grupo = x_real;
+        mortas[i].y_grupo = y_real;
+        mortas[i].grupo = grupo;
+        mortas[i].status = 0;
+
+        // 🔥 posição aleatória no grid (igual ao inic_mortas)
+        int x, y;
+        do {
+            x = rand() % tamForm;
+            y = rand() % tamForm;
+        } while (formigueiro[x][y] == 1);
+
+        mortas[i].posiX = x;
+        mortas[i].posiY = y;
+
+        formigueiro[x][y] = 1;
+    }
+
+    fclose(f);
 }
 
 void inic_mortas(Morta mortas[], int quantMortas, int tamForm, int formigueiro[tamForm][tamForm]){
@@ -270,9 +313,9 @@ void salvarMapaTxt(int tam, int formigueiro[tam][tam], Formiga formigas[], int q
 int main(){
     int tamForm = 32;
     int quantForm = 20;
-    int quantMortas = 100;
+    int quantMortas = 400;
     int raio = 1;
-    int num_iteracoes = 1000000;
+    int num_iteracoes = 100000;
     int frequenciaSnapshot = 500; // iteracoes para atualizar o txt 
 
     int formigueiro[tamForm][tamForm];
@@ -290,7 +333,7 @@ int main(){
 
     inic_formigas(formigas, quantForm, tamForm, vivas);
 
-    inic_mortas(corpos, quantMortas, tamForm, formigueiro);
+    inic_mortas_txt(corpos, quantMortas, tamForm, formigueiro);
 
     for(int i = 0; i < tamForm; i++){
         for(int j = 0; j < tamForm; j++){
@@ -329,6 +372,10 @@ int main(){
                 printf(" ");
             }        }
         printf("\n");
+    }
+
+    for(int i = 0; i < quantMortas; i++){
+        printf("Morta %i = posicao (%i,%i), status = %i, grupo = %i, x_grupo = %f, y_grupo = %f;\n", i, corpos[i].posiX, corpos[i].posiY, corpos[i].status, corpos[i].grupo, corpos[i].x_grupo, corpos[i].y_grupo);
     }
 
     /*
