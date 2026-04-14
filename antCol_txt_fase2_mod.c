@@ -409,12 +409,12 @@ int main(){
     printf("\nDisposição Final: \n\n");
     for(int i = 0; i < tamForm; i++){
         for(int j = 0; j < tamForm; j++){
-            if(formigueiro[i][j] != 0){
+            if(formigueiro[i][j] > 0){
                 // printf("%i ", formigueiro[i][j]);
                 if(corpos[formigueiro[i][j]].grupo == 0){
                     printf(" ");
                 } else {
-                    printf("%d ", corpos[formigueiro[i][j]].grupo);
+                    printf("%i ", corpos[formigueiro[i][j]].grupo);
                 }
             }
             else{
