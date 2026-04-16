@@ -2,10 +2,16 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 
-float alpha = 11.8029;
-float k1 = 0.3;
-float k2 = 0.6;
+char arquivo[] = "dados_15.txt";
+// float alpha = 11.8029;
+// float k1 = 0.3;
+// float k2 = 0.6;
+
+float alpha = 4.0;
+float k1 = 0.9;
+float k2 = 0.05;
 
 typedef struct formiga{
     int posiX;
@@ -40,7 +46,7 @@ void inic_formigas(Formiga formigas[], int quantForm, int tamForm, int vivas[tam
 }
 
 void inic_mortas_txt(Morta mortas[], int quantMortas, int tamForm, int formigueiro[tamForm][tamForm]) {
-    FILE *f = fopen("dados.txt", "r");
+    FILE *f = fopen(arquivo, "r");
     if (f == NULL) {
         printf("Erro ao abrir arquivo!\n");
         exit(1);
@@ -353,9 +359,16 @@ void salvarMapaTxt(int tam, int formigueiro[tam][tam], Formiga formigas[], int q
 int main(){
     int tamForm = 64;
     int quantForm = 100;
-    int quantMortas = 400;
     int raio = 1;
-    int num_iteracoes = 2000000;
+    int num_iteracoes = 7000000;
+
+    int quantMortas = 600;
+    if(strcmp(arquivo, "dados_4.txt") == 0){
+        quantMortas = 400;
+    } else {
+        quantMortas = 600;
+    }
+
     int frequenciaSnapshot = 500; // iteracoes para atualizar o txt
 
     int formigueiro[tamForm][tamForm];
@@ -393,18 +406,42 @@ int main(){
 
     printf("\n\n\n");
 
+    printf("Progresso: ");
+    int passo = num_iteracoes / 10;
+    clock_t t_inicio = clock(); 
+
     for(int i = 0; i < num_iteracoes; i++){
         for(int j = 0; j < quantForm; j++){
             dandoVida(formigas, j, tamForm, formigueiro, corpos, quantMortas, raio);
         }
 
-        // if(i % frequenciaSnapshot == 0){
-        //     salvarMapaTxt(tamForm, formigueiro, formigas, quantForm, i);
-        // }
+        
+        if ((i + 1) %  passo == 0) {
+            clock_t t_agora = clock();
+            double tempo_passado = (double)(t_agora - t_inicio) / CLOCKS_PER_SEC;
+
+            int porcentagem = (int)((i + 1) * 100.0 / num_iteracoes);
+            printf("%d%% ", porcentagem);
+            fflush(stdout);
+        }
     }
+
+    clock_t t_fim = clock();
+    double tempo_total = (double)(t_fim - t_inicio) / CLOCKS_PER_SEC;
+
 
     // print final do formigueiro
     salvarMapaTxt(tamForm, formigueiro, formigas, quantForm, num_iteracoes, corpos);
+
+    printf("\n\n========================================\n");
+    printf("           RELATORIO FINAL              \n");
+    printf("========================================\n");
+    printf("Iteracoes totais: %d\n", num_iteracoes);
+    printf("Tamanho do Grid: %d x %d\n", tamForm, tamForm);
+    printf("Quantidade de Dados: %d\n", quantMortas);
+    printf("Tempo total de execucao: %.4f segundos\n", tempo_total);
+    printf("Media de tempo por iteracao: %.8f s\n", tempo_total / num_iteracoes);
+    printf("========================================\n\n");
 
     printf("\nDisposição Final: \n\n");
     for(int i = 0; i < tamForm; i++){
