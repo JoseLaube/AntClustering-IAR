@@ -2,10 +2,16 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 
-float alpha = 11.8029;
-float k1 = 0.3;
-float k2 = 0.6;
+char arquivo[] = "dados_15.txt";
+// float alpha = 11.8029;
+// float k1 = 0.3;
+// float k2 = 0.6;
+
+float alpha = 4.0;
+float k1 = 0.9;
+float k2 = 0.05;
 
 typedef struct formiga{
     int posiX;
@@ -40,7 +46,7 @@ void inic_formigas(Formiga formigas[], int quantForm, int tamForm, int vivas[tam
 }
 
 void inic_mortas_txt(Morta mortas[], int quantMortas, int tamForm, int formigueiro[tamForm][tamForm]) {
-    FILE *f = fopen("dados.txt", "r");
+    FILE *f = fopen(arquivo, "r");
     if (f == NULL) {
         printf("Erro ao abrir arquivo!\n");
         exit(1);
@@ -68,12 +74,17 @@ void inic_mortas_txt(Morta mortas[], int quantMortas, int tamForm, int formiguei
         do {
             x = rand() % tamForm;
             y = rand() % tamForm;
-        } while (formigueiro[x][y] != 0);
+        }  while (formigueiro[x][y] != -1);
+        
+        // while (formigueiro[x][y] != 0);
+
 
         mortas[i].posiX = x;
         mortas[i].posiY = y;
 
-        formigueiro[x][y] = mortas[i].grupo;
+        // formigueiro[x][y] = mortas[i].grupo;
+        formigueiro[x][y] = i;
+    
     }
 
     fclose(f);
@@ -200,8 +211,9 @@ int visao(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][tamFo
             if (ny < 0) ny = tamForm - 1;
             if (ny >= tamForm) ny = 0;
 
-            int id_vizinho = encontrarMorta(nx, ny, colonia, quantMortas);
-            
+            // int id_vizinho = encontrarMorta(nx, ny, colonia, quantMortas);
+            int id_vizinho = formigueiro[nx][ny];
+
             if(id_vizinho != -1){
                 
                 float d = dist_euclidiana(
@@ -246,7 +258,8 @@ void pegar(Formiga formigas[], Morta colonia[], int i, int tamForm, int j, int f
     formigas[i].status = 1;
     formigas[i].idMorta = j;
     colonia[j].status = 1;
-    formigueiro[colonia[j].posiX][colonia[j].posiY] = 0;
+    //formigueiro[colonia[j].posiX][colonia[j].posiY] = 0;
+    formigueiro[colonia[j].posiX][colonia[j].posiY] = -1;
 }
 
 void soltar(Formiga formigas[], Morta colonia[], int i, int tamForm, int j, int formigueiro[tamForm][tamForm]){
@@ -255,7 +268,8 @@ void soltar(Formiga formigas[], Morta colonia[], int i, int tamForm, int j, int 
     colonia[j].status = 0;
     colonia[j].posiX = formigas[i].posiX;
     colonia[j].posiY = formigas[i].posiY;
-    formigueiro[colonia[j].posiX][colonia[j].posiY] = colonia[j].grupo;
+    //formigueiro[colonia[j].posiX][colonia[j].posiY] = colonia[j].grupo;
+    formigueiro[colonia[j].posiX][colonia[j].posiY] = j;
 }
 
 void dandoVida(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][tamForm], Morta colonia[], int quantMortas, int raio){
@@ -263,7 +277,8 @@ void dandoVida(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][
     int decisao = 0;
     int j = 0;
     if(formigas[i].status == 1){
-        if(formigueiro[formigas[i].posiX][formigas[i].posiY] != 0){
+        //if(formigueiro[formigas[i].posiX][formigas[i].posiY] != 0){
+        if(formigueiro[formigas[i].posiX][formigas[i].posiY] != -1){
             movimento(formigas, i, tamForm);
         }
         else{
@@ -279,13 +294,16 @@ void dandoVida(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][
         }
     }
     else{
-        if(formigueiro[formigas[i].posiX][formigas[i].posiY] == 0){
+        //if(formigueiro[formigas[i].posiX][formigas[i].posiY] == 0){
+        if(formigueiro[formigas[i].posiX][formigas[i].posiY] == -1){
             movimento(formigas, i, tamForm);
         }
         else{
             decisao = visao(formigas, i, tamForm, formigueiro, raio, colonia, quantMortas);
             if(decisao == 1){
-                j = encontrarMorta(formigas[i].posiX, formigas[i].posiY, colonia, quantMortas);
+                // j = encontrarMorta(formigas[i].posiX, formigas[i].posiY, colonia, quantMortas);
+                
+                j = formigueiro[formigas[i].posiX][formigas[i].posiY];
                 if(j != -1){
                     pegar(formigas, colonia, i, tamForm, j, formigueiro);
                 }
@@ -297,7 +315,7 @@ void dandoVida(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][
     }
 }
 
-void salvarMapaTxt(int tam, int formigueiro[tam][tam], Formiga formigas[], int quantForm, int iteracao) {
+void salvarMapaTxt(int tam, int formigueiro[tam][tam], Formiga formigas[], int quantForm, int iteracao, Morta colonia[]) {
     FILE *f = fopen("visualizacao.txt", "w");
     if (f == NULL) return;
 
@@ -306,7 +324,11 @@ void salvarMapaTxt(int tam, int formigueiro[tam][tam], Formiga formigas[], int q
     // 1. Preenche a matriz visual com Itens ou Espaço Vazio
     for (int i = 0; i < tam; i++) {
         for (int j = 0; j < tam; j++) {
-            visual[i][j] = (formigueiro[i][j] == 1) ? 'o' : ' '; 
+            if (formigueiro[i][j] != -1) {
+                visual[i][j] = colonia[formigueiro[i][j]].grupo + '0';
+            } else {
+                visual[i][j] = ' ';
+            }
         }
     }
 
@@ -337,9 +359,16 @@ void salvarMapaTxt(int tam, int formigueiro[tam][tam], Formiga formigas[], int q
 int main(){
     int tamForm = 64;
     int quantForm = 100;
-    int quantMortas = 400;
     int raio = 1;
-    int num_iteracoes = 2000000;
+    int num_iteracoes = 7000000;
+
+    int quantMortas = 600;
+    if(strcmp(arquivo, "dados_4.txt") == 0){
+        quantMortas = 400;
+    } else {
+        quantMortas = 600;
+    }
+
     int frequenciaSnapshot = 500; // iteracoes para atualizar o txt
 
     int formigueiro[tamForm][tamForm];
@@ -350,7 +379,8 @@ int main(){
 
     for(int i =0; i< tamForm; i++){
         for(int j = 0; j < tamForm; j++){
-            formigueiro[i][j] = 0;
+            // formigueiro[i][j] = 0;
+            formigueiro[i][j] = -1;
             vivas[i][j] = 0;
         }
     }
@@ -359,10 +389,13 @@ int main(){
 
     inic_mortas_txt(corpos, quantMortas, tamForm, formigueiro);
 
+    printf("\nDisposição de elementos inicialmente: \n\n");
     for(int i = 0; i < tamForm; i++){
         for(int j = 0; j < tamForm; j++){
-            if(formigueiro[i][j] != 0){
-                printf("%i ", formigueiro[i][j]);
+            // if(formigueiro[i][j] != 0){
+            if(formigueiro[i][j] != -1){
+                // printf("%i ", formigueiro[i][j]);
+                printf("%d ", corpos[formigueiro[i][j]].grupo);
             }
             else{
                 printf(" ");
@@ -373,30 +406,61 @@ int main(){
 
     printf("\n\n\n");
 
-    
+    printf("Progresso: ");
+    int passo = num_iteracoes / 10;
+    clock_t t_inicio = clock(); 
+
     for(int i = 0; i < num_iteracoes; i++){
         for(int j = 0; j < quantForm; j++){
             dandoVida(formigas, j, tamForm, formigueiro, corpos, quantMortas, raio);
         }
 
-        if(i % frequenciaSnapshot == 0){
-            salvarMapaTxt(tamForm, formigueiro, formigas, quantForm, i);
+        
+        if ((i + 1) %  passo == 0) {
+            clock_t t_agora = clock();
+            double tempo_passado = (double)(t_agora - t_inicio) / CLOCKS_PER_SEC;
+
+            int porcentagem = (int)((i + 1) * 100.0 / num_iteracoes);
+            printf("%d%% ", porcentagem);
+            fflush(stdout);
         }
     }
 
-    // print final do formigueiro
-    salvarMapaTxt(tamForm, formigueiro, formigas, quantForm, num_iteracoes);
+    clock_t t_fim = clock();
+    double tempo_total = (double)(t_fim - t_inicio) / CLOCKS_PER_SEC;
 
+
+    // print final do formigueiro
+    salvarMapaTxt(tamForm, formigueiro, formigas, quantForm, num_iteracoes, corpos);
+
+    printf("\n\n========================================\n");
+    printf("           RELATORIO FINAL              \n");
+    printf("========================================\n");
+    printf("Iteracoes totais: %d\n", num_iteracoes);
+    printf("Tamanho do Grid: %d x %d\n", tamForm, tamForm);
+    printf("Quantidade de Dados: %d\n", quantMortas);
+    printf("Tempo total de execucao: %.4f segundos\n", tempo_total);
+    printf("Media de tempo por iteracao: %.8f s\n", tempo_total / num_iteracoes);
+    printf("========================================\n\n");
+
+    printf("\nDisposição Final: \n\n");
     for(int i = 0; i < tamForm; i++){
         for(int j = 0; j < tamForm; j++){
-            if(formigueiro[i][j] != 0){
-                printf("%i ", formigueiro[i][j]);
+            if(formigueiro[i][j] > 0){
+                // printf("%i ", formigueiro[i][j]);
+                if(corpos[formigueiro[i][j]].grupo == 0){
+                    printf(" ");
+                } else {
+                    printf("%i ", corpos[formigueiro[i][j]].grupo);
+                }
             }
             else{
                 printf(" ");
             }        }
         printf("\n");
     }
+
+    printf("\n");
 
     return 0;
 }
