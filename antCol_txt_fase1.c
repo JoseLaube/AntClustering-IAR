@@ -7,7 +7,7 @@ typedef struct formiga{
     int posiX;
     int posiY;
     int status;
-    int idMorta; //0 não ésta carregando 1 carregando formiga
+    int idMorta; // 0 não esta carregando 1 carregando formiga
 } Formiga;
 
 typedef struct morta{
@@ -31,48 +31,8 @@ void inic_formigas(Formiga formigas[], int quantForm, int tamForm, int vivas[tam
         formigas[i].status = 0;
         formigas[i].idMorta = -1;
 
-        //vivas[x][y]++;
+        vivas[x][y]++;
     }
-}
-
-void inic_mortas_txt(Morta mortas[], int quantMortas, int tamForm, int formigueiro[tamForm][tamForm]) {
-    FILE *f = fopen("dados.txt", "r");
-    if (f == NULL) {
-        printf("Erro ao abrir arquivo!\n");
-        exit(1);
-    }
-
-    float x_real, y_real;
-    int grupo;
-
-    for (int i = 0; i < quantMortas; i++) {
-
-        // lê os dados do arquivo
-        if (fscanf(f, "%f %f %d", &x_real, &y_real, &grupo) != 3) {
-            printf("Erro ao ler linha %d\n", i);
-            break;
-        }
-
-        // 🔥 salva os dados "semânticos"
-        mortas[i].x_grupo = x_real;
-        mortas[i].y_grupo = y_real;
-        mortas[i].grupo = grupo;
-        mortas[i].status = 0;
-
-        // 🔥 posição aleatória no grid (igual ao inic_mortas)
-        int x, y;
-        do {
-            x = rand() % tamForm;
-            y = rand() % tamForm;
-        } while (formigueiro[x][y] == 1);
-
-        mortas[i].posiX = x;
-        mortas[i].posiY = y;
-
-        formigueiro[x][y] = 1;
-    }
-
-    fclose(f);
 }
 
 void inic_mortas(Morta mortas[], int quantMortas, int tamForm, int formigueiro[tamForm][tamForm]){
@@ -101,28 +61,6 @@ void movimento(Formiga formigas[], int i, int tamForm){
     3 = baixo - x + 1; y
     */
 
-    // VERSÃO ANTIGA DA DIREÇÃO:
-    
-    /*
-    int direcao = rand() % 8;
-    switch(direcao){
-        case 0: novoX--; novoY--; break; // diagonal superior esquerda - x - 1; y -1
-        case 1: novoX--; break;
-        case 2: novoX--; novoY++; break; // diagonal superior direita - x - 1; y + 1
-        case 3: novoY--; break;
-        case 4: novoY++; break;
-        case 5: novoX++; novoY--; break; // diagonal inferior esquerda - x + 1; y - 1
-        case 6: novoX++; break;
-        case 7: novoX++; novoY++; break; // diagonal inferior direita - x + 1; y + 1
-    }
-
-    if(novoX >= 0 && novoX < tamForm && novoY >= 0 && novoY < tamForm){
-        formigas[i].posiX = novoX;
-        formigas[i].posiY = novoY;
-    }
-    */
-
-
     // VERSÃO NOVA DA DIREÇÃO:
     int novoX = formigas[i].posiX;
     int novoY = formigas[i].posiY;
@@ -144,7 +82,7 @@ void movimento(Formiga formigas[], int i, int tamForm){
         novoX = 0;
     }
 
-     if(novoY < 0){
+    if(novoY < 0){
         novoY = tamForm - 1;
     }
 
@@ -167,14 +105,6 @@ int visao(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][tamFo
 
             if(dx == 0 && dy == 0) continue;
 
-            // VERSÃO ANTIGA DA MOVIMENTAÇÃO:
-
-            // if(nx >= 0 && nx < tamForm && ny >= 0 && ny < tamForm){
-            //     cont += formigueiro[nx][ny];
-            // }
-
-
-            // NOVA VERSÃO DA VISÃO:
             int nx = x + dx;
             int ny = y + dy;
 
@@ -232,7 +162,6 @@ int encontrarMorta(int x, int y, Morta colonia[], int quantMortas){
     return -1;
 }
 
-
 void dandoVida(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][tamForm], Morta colonia[], int quantMortas, int raio){
     
     int decisao = 0;
@@ -272,7 +201,6 @@ void dandoVida(Formiga formigas[], int i, int tamForm, int formigueiro[tamForm][
     }
 }
 
-
 void salvarMapaTxt(int tam, int formigueiro[tam][tam], Formiga formigas[], int quantForm, int iteracao) {
     FILE *f = fopen("visualizacao.txt", "w");
     if (f == NULL) return;
@@ -311,12 +239,12 @@ void salvarMapaTxt(int tam, int formigueiro[tam][tam], Formiga formigas[], int q
 
 
 int main(){
-    int tamForm = 32;
-    int quantForm = 20;
-    int quantMortas = 400;
+    int tamForm = 64;
+    int quantForm = 100;
+    int quantMortas = 101;
     int raio = 1;
-    int num_iteracoes = 100000;
-    int frequenciaSnapshot = 500; // iteracoes para atualizar o txt 
+    int num_iteracoes = 250000;
+    int frequenciaSnapshot = 500; // taxa de atualizacao do vizualizacao.txt
 
     int formigueiro[tamForm][tamForm];
     int vivas[tamForm][tamForm];
@@ -332,8 +260,12 @@ int main(){
     }
 
     inic_formigas(formigas, quantForm, tamForm, vivas);
+    inic_mortas(corpos, quantMortas, tamForm, formigueiro);
 
-    inic_mortas_txt(corpos, quantMortas, tamForm, formigueiro);
+    printf("\nIniciando simulacao Fase 1\n");
+    
+    clock_t t_inicio = clock();
+    int check_point = num_iteracoes / 10;
 
     for(int i = 0; i < tamForm; i++){
         for(int j = 0; j < tamForm; j++){
@@ -348,17 +280,30 @@ int main(){
     }
 
     printf("\n\n\n");
+    printf("Progresso: ");
+            
 
-    
     for(int i = 0; i < num_iteracoes; i++){
         for(int j = 0; j < quantForm; j++){
             dandoVida(formigas, j, tamForm, formigueiro, corpos, quantMortas, raio);
+        }
+
+        // Print de progressão de 10 em 10%
+        if ((i + 1) % check_point == 0) {
+            int porcentagem = (int)((i + 1) * 100.0 / num_iteracoes);
+            
+            printf("%d%% ", porcentagem);
+            fflush(stdout);
         }
 
         if(i % frequenciaSnapshot == 0){
             salvarMapaTxt(tamForm, formigueiro, formigas, quantForm, i);
         }
     }
+
+    printf("\n\n");
+    clock_t t_fim = clock();
+    double tempo_total = (double)(t_fim - t_inicio) / CLOCKS_PER_SEC;
 
     // print final do formigueiro
     salvarMapaTxt(tamForm, formigueiro, formigas, quantForm, num_iteracoes);
@@ -374,57 +319,15 @@ int main(){
         printf("\n");
     }
 
-    for(int i = 0; i < quantMortas; i++){
-        printf("Morta %i = posicao (%i,%i), status = %i, grupo = %i, x_grupo = %f, y_grupo = %f;\n", i, corpos[i].posiX, corpos[i].posiY, corpos[i].status, corpos[i].grupo, corpos[i].x_grupo, corpos[i].y_grupo);
-    }
+    printf("\n========================================\n");
+    printf("       RELATORIO FINAL - FASE 1         \n");
+    printf("========================================\n");
+    printf("Iteracoes: %d | Formigas Vivas: %d\n", num_iteracoes, quantForm);
+    printf("Grid: %d x %d | Mortas: %d\n", tamForm, tamForm, quantMortas);
+    printf("Tempo Total: %.4f segundos\n", tempo_total);
+    printf("Desempenho: %.8f s/iteracao\n", tempo_total / num_iteracoes);
+    printf("========================================\n\n");
 
-    /*
-    formigas[20].posiX = 63;
-    formigas[20].posiY = 63;
 
-    printf("Morta 20 = posicao (%i,%i), status = %i\n", formigas[20].posiX, formigas[20].posiY, formigas[20].status);
-    for(int i = 0; i < 3000; i++){
-        movimento(formigas, 20, tamForm);
-        vivas[formigas[20].posiX][formigas[20].posiY] = 1;
-        //printf("Morta 20 = posicao (%i,%i), status = %i\n", formigas[20].posiX, formigas[20].posiY, formigas[20].status);
-    }
-    int cont = 0;
-
-    for(int i = 0; i<tamForm; i++){
-        for(int j = 0; j < tamForm; j++){
-            if(vivas[i][j] > 0){
-                printf("%i ", vivas[i][j]);
-                cont += vivas[i][j];
-            }
-            else{
-                printf(" ");
-            }
-        }
-        printf("\n");
-    }
-    printf("\n%i\n", cont);*/
-    /*
-
-    ESTRUTURA PARA TESTE DE INICIALIZAÇÃO
-
-    for(int i = 0; i < quantMortas; i++){
-        printf("Morta %i = posicao (%i,%i), status = %i\n", i, corpos[i].posiX, corpos[i].posiY, corpos[i].status);
-    }
-
-    int cont = 0;
-    for(int i = 0; i < tamForm; i++){
-        for (int j = 0; j < tamForm; j++){
-            if(vivas[i][j] > 0){
-                printf("%i ", vivas[i][j]);
-                cont += vivas[i][j];
-            }
-            else{
-                printf(" ");
-            }
-        }
-        printf("\n");
-    }
-    printf("\n\nQuantidade = %i", cont);
-    */
     return 0;
 }
